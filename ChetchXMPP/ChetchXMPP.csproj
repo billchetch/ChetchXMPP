@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Reactive" Version="6.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Chetch.Utilities">
+      <HintPath>..\..\Utilities\Utilities\bin\Debug\Chetch.Utilities.dll</HintPath>
+    </Reference>
+    <Reference Include="XmppDotNet">
+      <HintPath>..\..\XmppDotNet\src\XmppDotNet\bin\Debug\net8.0\XmppDotNet.dll</HintPath>
+    </Reference>
+    <Reference Include="XmppDotNet.Core">
+      <HintPath>..\..\XmppDotNet\src\XmppDotNet\bin\Debug\net8.0\XmppDotNet.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="XmppDotNet.Extensions">
+      <HintPath>..\..\XmppDotNet\src\XmppDotNet.Extensions\bin\Debug\net8.0\XmppDotNet.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="XmppDotNet.Srv">
+      <HintPath>..\..\XmppDotNet\src\XmppDotNet.Srv\bin\Debug\net8.0\XmppDotNet.Srv.dll</HintPath>
+    </Reference>
+    <Reference Include="XmppDotNet.Transport.Socket">
+      <HintPath>..\..\XmppDotNet\src\XmppDotNet.Transport.Socket\bin\Debug\net8.0\XmppDotNet.Transport.Socket.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
