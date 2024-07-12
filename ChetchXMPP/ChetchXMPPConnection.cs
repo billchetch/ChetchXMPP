@@ -22,7 +22,6 @@ namespace Chetch.ChetchXMPP
             public Message OriginalMessage { get; internal set; }
         }
 
-
         const String DEFAULT_XMPP_DOMAIN = "openfire@bb.lan";
 
         private XmppClient xmppClient;
