@@ -1,4 +1,5 @@
 ﻿using Chetch.Utilities;
+using Chetch.Messaging;
 using XmppDotNet;
 using XmppDotNet.Transport.Socket;
 using XmppDotNet.Xmpp.Client;
@@ -19,10 +20,11 @@ namespace Chetch.ChetchXMPP
     {
         public class MessageReceivedArgs : EventArgs
         {
-            public Message OriginalMessage { get; internal set; }
+            public XmppDotNet.Xmpp.Client.Message OriginalMessage { get; internal set; }
+            public Chetch.Messaging.Message Message { get; internal set; }
         }
 
-        const String DEFAULT_XMPP_DOMAIN = "openfire@bb.lan";
+        const String CHETCH_MESSAGE_SUBJECT = "chetch.message";
 
         private XmppClient xmppClient;
 
@@ -34,10 +36,25 @@ namespace Chetch.ChetchXMPP
             SessionStateChanged?.Invoke(this, sessionState);
         }
 
-        protected void OnMessageReceived(Message message)
+        protected void OnMessageReceived(XmppDotNet.Xmpp.Client.Message message)
         {
             MessageReceivedArgs eargs = new MessageReceivedArgs();
             eargs.OriginalMessage = message;
+
+            if (!String.IsNullOrEmpty(message.Subject) && message.Subject.Equals(CHETCH_MESSAGE_SUBJECT))
+            {
+                String body = message.Body;
+                try
+                {
+                    Messaging.Message chetchMessage = Messaging.Message.Deserialize(body);
+                    eargs.Message = chetchMessage;
+                } catch(Exception)
+                {
+                    //what to do here
+                }
+            }
+
+
             MessageReceived?.Invoke(this, eargs);
         }
 
@@ -51,7 +68,7 @@ namespace Chetch.ChetchXMPP
 
             if (!username.Contains('@'))
             {
-                username += "@" + DEFAULT_XMPP_DOMAIN;
+                throw new ChetchXMPPException(String.Format("Username {0} does not specify a domain", username));
             }
             xmppClient = new XmppClient(conf)
             {
@@ -77,16 +94,49 @@ namespace Chetch.ChetchXMPP
             //message received
             xmppClient
                 .XmppXElementReceived
-                .Where(el => el is Message)
-                .Subscribe(async el =>
+                .Where(el => el is XmppDotNet.Xmpp.Client.Message)
+                .Subscribe(el =>
                 {
-                    OnMessageReceived((Message)el);
+                    OnMessageReceived((XmppDotNet.Xmpp.Client.Message)el);
                 });
         }
 
         public Task ConnectAsync()
         {
             return xmppClient.ConnectAsync();
-         }
+        }
+
+        public Task DisconnectAsync()
+        {
+            return xmppClient.DisconnectAsync();
+        }
+
+        public Task SendMessageAsync(XmppDotNet.Xmpp.Client.Message message)
+        {
+            return xmppClient.SendMessageAsync(message);
+        }
+
+        public Task SendMessageAsync(Messaging.Message chetchMessage)
+        {
+            if (String.IsNullOrEmpty(chetchMessage.Target))
+            {
+                throw new ChetchXMPPException("ChetchXMPPConnection::SendMessageAsync message target cannot be null or empty");
+            }
+
+            if (!chetchMessage.Target.Contains('@'))
+            {
+                chetchMessage.Target += '@' + xmppClient.Jid.Domain;
+            }
+            Jid target = new Jid(chetchMessage.Target);
+            String body = chetchMessage.Serialize();
+
+
+            XmppDotNet.Xmpp.Client.Message xmppMessage = new XmppDotNet.Xmpp.Client.Message();
+            xmppMessage.To = target;
+            xmppMessage.Subject = CHETCH_MESSAGE_SUBJECT;
+            xmppMessage.Body = body;
+
+            return SendMessageAsync(xmppMessage);
+        }
     }
 }

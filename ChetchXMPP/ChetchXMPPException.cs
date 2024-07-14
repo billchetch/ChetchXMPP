@@ -8,5 +8,6 @@ namespace Chetch.ChetchXMPP
 {
     public class ChetchXMPPException : Exception
     {
+        public ChetchXMPPException(String message) : base(message) { }
     }
 }

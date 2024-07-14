@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
+    <AssemblyName>Chetch.$(MSBuildProjectName)</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,6 +12,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="Chetch.Messaging">
+      <HintPath>..\..\Messaging\Messaging\bin\Debug\net8.0\Chetch.Messaging.dll</HintPath>
+    </Reference>
     <Reference Include="Chetch.Utilities">
       <HintPath>..\..\Utilities\Utilities\bin\Debug\Chetch.Utilities.dll</HintPath>
     </Reference>
