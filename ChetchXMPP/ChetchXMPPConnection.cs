@@ -27,12 +27,14 @@ namespace Chetch.ChetchXMPP
         const String CHETCH_MESSAGE_SUBJECT = "chetch.message";
 
         private XmppClient xmppClient;
+        public SessionState CurrentState { get; internal set; } = SessionState.Disconnected; 
 
         public event EventHandler<SessionState> SessionStateChanged;
         public event EventHandler<MessageReceivedArgs> MessageReceived;
 
         protected void OnSessionStateChange(SessionState sessionState)
         {
+            CurrentState = sessionState;
             SessionStateChanged?.Invoke(this, sessionState);
         }
 
