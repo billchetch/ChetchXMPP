@@ -13,6 +13,10 @@ using XmppDotNet.Extensions.Client.Presence;
 using XmppDotNet.Extensions.Client.Subscription;
 using System.Text;
 using XmppDotNet.Xmpp.ResultSetManagement;
+using XmppDotNet.Extensions.Client.PubSub;
+using XmppDotNet.Extensions.Client.Roster;
+using XmppDotNet.Xmpp.Roster;
+using XmppDotNet.Xml;
 
 namespace Chetch.ChetchXMPP
 {
@@ -24,13 +28,17 @@ namespace Chetch.ChetchXMPP
             public Chetch.Messaging.Message Message { get; internal set; }
         }
 
+        
         const String CHETCH_MESSAGE_SUBJECT = "chetch.message";
 
         private XmppClient xmppClient;
-        public SessionState CurrentState { get; internal set; } = SessionState.Disconnected; 
+        public SessionState CurrentState { get; internal set; } = SessionState.Disconnected;
+        public String Username => xmppClient?.Jid.Bare.ToString();
 
         public event EventHandler<SessionState> SessionStateChanged;
         public event EventHandler<MessageReceivedArgs> MessageReceived;
+
+        private List<String> contacts = new List<String>();
 
         protected void OnSessionStateChange(SessionState sessionState)
         {
@@ -86,11 +94,28 @@ namespace Chetch.ChetchXMPP
                 .StateChanged
                 .Subscribe(async v =>
                 {
-                    OnSessionStateChange(v);
                     if (v == SessionState.Binded)
                     {
                         await xmppClient.SendPresenceAsync(Show.None, "free for chat");
+
+
+                        var rosterIqResult = await xmppClient.RequestRosterAsync();
+
+                        // get all rosterItems (list of contacts)
+                        var rosterItems
+                            = rosterIqResult
+                                .Query
+                                .Cast<Roster>()
+                                .GetRoster();
+
+                        // enumerate over the items and build your contact list or GUI
+                        foreach (var ri in rosterItems)
+                        {
+                            contacts.Add(ri.Jid.ToString());
+                            
+                        }
                     }
+                    OnSessionStateChange(v);
                 });
 
             //message received
@@ -111,6 +136,17 @@ namespace Chetch.ChetchXMPP
         public Task DisconnectAsync()
         {
             return xmppClient.DisconnectAsync();
+        }
+
+        public Task<Iq> AddContact(String contact)
+        {
+            Jid jid = new Jid(contact);
+            String bare = jid.Bare;
+            if (!contacts.Contains(bare))
+            {
+                contacts.Add(bare);
+            }
+            return xmppClient.AddRosterItemAsync(bare);
         }
 
         public Task SendMessageAsync(XmppDotNet.Xmpp.Client.Message message)
@@ -140,5 +176,29 @@ namespace Chetch.ChetchXMPP
 
             return SendMessageAsync(xmppMessage);
         }
-    }
+    
+        public void Broadcast(Messaging.Message chetchMessage)
+        {
+            Exception e2throw = null;
+            foreach(var contact in contacts)
+            {
+                Messaging.Message message = new Messaging.Message(chetchMessage);
+                message.Target = contact;
+                try
+                {
+                    SendMessageAsync(message);
+                } catch (Exception e)
+                {
+                    if(e2throw == null) {
+                        e2throw = e;
+                    }
+                    
+                }
+            }
+            if(e2throw != null)
+            {
+                throw e2throw;
+            }
+        }
+    } //end class
 }
