@@ -32,6 +32,14 @@ namespace Chetch.ChetchXMPP
         #endregion
 
         #region Service lifecycle
+
+        public override Task StartAsync(CancellationToken cancellationToken)
+        {
+            AddCommandHelp("(h)elp", "Lists commands for this service");
+
+            return base.StartAsync(cancellationToken);
+        }
+
         override protected async Task Execute(CancellationToken stoppingToken)
         {
             //unnecessary wait???
@@ -209,7 +217,6 @@ namespace Chetch.ChetchXMPP
             {
                 case "h":
                 case "help":
-                    AddCommandHelp("(h)ehp", "Lists commands for this service");
                     response.AddValue("Help", commandHelp);
                     break;
             }
