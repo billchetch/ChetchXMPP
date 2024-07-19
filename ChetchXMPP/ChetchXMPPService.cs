@@ -149,9 +149,9 @@ namespace Chetch.ChetchXMPP
         {
             //unnecessary wait???
             await Task.Delay(100);
-            AddCommand("help", "Lists commands for this service");
-            AddCommand("about", "Some info this service", false);
-            AddCommand("version", "Service version", false);
+            AddCommand(COMMAND_HELP, "Lists commands for this service");
+            AddCommand(COMMAND_ABOUT, "Some info this service", false);
+            AddCommand(COMMAND_VERSION, "Service version", false);
 
             //do some config
             var config = getAppSettings();
@@ -161,6 +161,7 @@ namespace Chetch.ChetchXMPP
             switch (encryption?.ToLower())
             {
                 case "default":
+                    //TODO: descrypt
                     break;
 
                 default:
@@ -188,11 +189,20 @@ namespace Chetch.ChetchXMPP
             {
                 if (eargs.Message != null)
                 {
-                    bool respond = false;
                     try
                     {
+                        bool respond = false;
                         Message response = CreateResponse(eargs.Message);
-                        respond = messageReceived(eargs.Message, response);
+                        try
+                        {
+                            respond = messageReceived(eargs.Message, response);
+                        } catch(ChetchXMPPException e)
+                        {
+                            respond = true;
+                            response.Type = MessageType.ERROR;
+                            response.AddValue("Message", e.Message);
+                        }
+
                         if (respond)
                         {
                             try
@@ -204,7 +214,8 @@ namespace Chetch.ChetchXMPP
                                 logger.LogError(EVENT_ID_SENDRESPONSEERROR, e, e.Message);
                             }
                         }
-                    } catch(Exception ex)
+                    }
+                    catch (Exception ex)
                     {
                         logger.LogError(EVENT_ID_MESSAGERECEIVEDERROR, ex, ex.Message);
                     }
@@ -306,6 +317,7 @@ namespace Chetch.ChetchXMPP
             {
                 case MessageType.SUBSCRIBE:
                     response.Type = MessageType.SUBSCRIBE_RESPONSE;
+                    response.AddValue("Welcome", String.Format("Welcome to {0} service", ServiceName));
                     cnn.AddContact(message.Sender);
                     logger.LogWarning(EVENT_ID_SUBSCRIPTION, "{0} has subscribed", message.Sender);
                     return true;
@@ -334,7 +346,8 @@ namespace Chetch.ChetchXMPP
                     {
                         throw new ChetchXMPPServiceException("Command not yet implemented");
                     }
-                    response.AddValue("OriginalCommand", command);
+                    //always return the full version of the command
+                    response.AddValue("OriginalCommand", cmd.Command);
                     List<Object> args = message.GetList<Object>("Arguments");
                     
                     return CommandReceived(cmd, args, response);

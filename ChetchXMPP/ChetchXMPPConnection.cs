@@ -156,18 +156,25 @@ namespace Chetch.ChetchXMPP
 
         public Task SendMessageAsync(Messaging.Message chetchMessage)
         {
+            //validae chetch messages
             if (String.IsNullOrEmpty(chetchMessage.Target))
             {
                 throw new ChetchXMPPException("ChetchXMPPConnection::SendMessageAsync message target cannot be null or empty");
             }
 
+            //do some normalising
             if (!chetchMessage.Target.Contains('@'))
             {
                 chetchMessage.Target += '@' + xmppClient.Jid.Domain;
             }
+            if (String.IsNullOrEmpty(chetchMessage.Sender))
+            {
+                chetchMessage.Sender = xmppClient.Jid.Bare.ToString();
+            }
+
+            //now prepare xmpp message and send
             Jid target = new Jid(chetchMessage.Target);
             String body = chetchMessage.Serialize();
-
 
             XmppDotNet.Xmpp.Client.Message xmppMessage = new XmppDotNet.Xmpp.Client.Message();
             xmppMessage.To = target;
