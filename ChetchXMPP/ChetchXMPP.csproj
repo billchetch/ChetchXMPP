@@ -15,15 +15,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Services\Services\Services.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Reference Include="Chetch.Messaging">
       <HintPath>..\..\Messaging\Messaging\bin\Debug\net8.0\Chetch.Messaging.dll</HintPath>
     </Reference>
+    <Reference Include="Chetch.Services">
+      <HintPath>..\..\Services\Services\bin\Debug\net8.0\Chetch.Services.dll</HintPath>
+    </Reference>
     <Reference Include="Chetch.Utilities">
-      <HintPath>..\..\Utilities\Utilities\bin\Debug\Chetch.Utilities.dll</HintPath>
+      <HintPath>..\..\Utilities\Utilities\bin\Debug\net8.0\Chetch.Utilities.dll</HintPath>
     </Reference>
     <Reference Include="XmppDotNet">
       <HintPath>..\..\XmppDotNet\src\XmppDotNet\bin\Debug\net8.0\XmppDotNet.dll</HintPath>
