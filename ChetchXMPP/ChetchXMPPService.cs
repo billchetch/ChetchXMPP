@@ -22,6 +22,16 @@ namespace Chetch.ChetchXMPP
         const String COMMAND_ABOUT = "about";
         const String COMMAND_VERSION = "version";
 
+        const int EVENT_ID_GENERICERROR = 88;
+        const int EVENT_ID_CREATEXMPP = 1088;
+        const int EVENT_ID_CONNECTIONERROR = 188;
+        const int EVENT_ID_SESSIONSTATECHANGE = 1188;
+        const int EVENT_ID_START2CONNECT = 1288;
+        const int EVENT_ID_CONNECTED = 1289;
+        const int EVENT_ID_MESSAGERECEIVEDERROR = 98;
+        const int EVENT_ID_SENDRESPONSEERROR = 99;
+        const int EVENT_ID_SUBSCRIPTION = 2010;
+
         #endregion
 
         #region Class declarations
@@ -157,7 +167,7 @@ namespace Chetch.ChetchXMPP
                     //do nothing
                     break;
             }
-            logger.LogInformation(88, "Creating XMPP connection for user {0}...", username);
+            logger.LogInformation(EVENT_ID_CREATEXMPP, "Creating XMPP connection for user {0}...", username);
 
             
             //create the connection
@@ -170,7 +180,7 @@ namespace Chetch.ChetchXMPP
                     SessionStateChanged(state);
                 } catch (Exception e)
                 {
-                    logger.LogError(1188, e, e.Message);
+                    logger.LogError(EVENT_ID_GENERICERROR, e, e.Message);
                 }
             };
 
@@ -178,18 +188,27 @@ namespace Chetch.ChetchXMPP
             {
                 if (eargs.Message != null)
                 {
-                    Message response = CreateResponse(eargs.Message);
-                    if (messageReceived(eargs.Message, response))
+                    bool respond = false;
+                    try
                     {
-                        try
+                        Message response = CreateResponse(eargs.Message);
+                        respond = messageReceived(eargs.Message, response);
+                        if (respond)
                         {
-                            SendMessage(response);
+                            try
+                            {
+                                SendMessage(response);
+                            }
+                            catch (Exception e)
+                            {
+                                logger.LogError(EVENT_ID_SENDRESPONSEERROR, e, e.Message);
+                            }
                         }
-                        catch (Exception e)
-                        {
-                            logger.LogError(1288, e, e.Message);
-                        }
+                    } catch(Exception ex)
+                    {
+                        logger.LogError(EVENT_ID_MESSAGERECEIVEDERROR, ex, ex.Message);
                     }
+
                 }
             };
 
@@ -197,14 +216,14 @@ namespace Chetch.ChetchXMPP
             Task connectTask = cnn.ConnectAsync();
             try
             {
-                logger.LogInformation(188, "Awaiting connect process to complete...");
+                logger.LogInformation(EVENT_ID_START2CONNECT, "Awaiting connect process to complete...");
                 await connectTask;
-                logger.LogInformation(189, "Connect process completed!");
+                logger.LogInformation(EVENT_ID_CONNECTED, "Connect process completed!");
 
             }
             catch (Exception e)
             {
-                logger.LogError(1188, e, e.Message);
+                logger.LogError(EVENT_ID_CONNECTIONERROR, e, e.Message);
             }
         }
 
@@ -244,7 +263,7 @@ namespace Chetch.ChetchXMPP
             }
 
 
-            logger.LogInformation(88, "Connection state: {0}", newState);
+            logger.LogInformation(EVENT_ID_SESSIONSTATECHANGE, "Connection state: {0}", newState);
         }
         #endregion
 
@@ -288,6 +307,7 @@ namespace Chetch.ChetchXMPP
                 case MessageType.SUBSCRIBE:
                     response.Type = MessageType.SUBSCRIBE_RESPONSE;
                     cnn.AddContact(message.Sender);
+                    logger.LogWarning(EVENT_ID_SUBSCRIPTION, "{0} has subscribed", message.Sender);
                     return true;
 
                 case MessageType.PING:
