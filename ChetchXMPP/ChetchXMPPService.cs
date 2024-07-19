@@ -377,8 +377,9 @@ namespace Chetch.ChetchXMPP
             {
                 case COMMAND_HELP:
                     Dictionary<String, String> commandHelp = new Dictionary<String, String>();
-                    foreach (var cmd in commands.Values)
+                    foreach (var key in commands.Keys)
                     {
+                        var cmd = commands[key];
                         commandHelp.Add(cmd.HelpLabel, cmd.HelpDescription);
                     }
                     response.AddValue("Help", commandHelp);
