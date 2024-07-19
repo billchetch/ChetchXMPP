@@ -101,6 +101,8 @@ namespace Chetch.ChetchXMPP
         #region Fields
         ChetchXMPPConnection cnn;
         SortedDictionary<String, ServiceCommand> commands = new SortedDictionary<String, ServiceCommand>();
+        protected String Version { get; set; } = "!.0";
+        protected String About { get; set;  } = String.Format("{0} is a Chetch XMPP Service", ServiceName);
         #endregion
 
         #region Methods
@@ -150,11 +152,14 @@ namespace Chetch.ChetchXMPP
             //unnecessary wait???
             await Task.Delay(100);
             AddCommand(COMMAND_HELP, "Lists commands for this service");
-            AddCommand(COMMAND_ABOUT, "Some info this service", false);
-            AddCommand(COMMAND_VERSION, "Service version", false);
+            AddCommand(COMMAND_ABOUT, "Some info this service");
+            AddCommand(COMMAND_VERSION, "Service version");
 
             //do some config
             var config = getAppSettings();
+            Version = config.GetValue<String>("Service:Version", Version);
+            About = config.GetValue<String>("Service:About", About);
+
             String username = config.GetValue<String>("Credentials:Username");
             String password = config.GetValue<String>("Credentials:Password");
             String encryption = config.GetValue<String>("Credentials:Encryption");
@@ -383,6 +388,14 @@ namespace Chetch.ChetchXMPP
                         commandHelp.Add(cmd.HelpLabel, cmd.HelpDescription);
                     }
                     response.AddValue("Help", commandHelp);
+                    break;
+
+                case COMMAND_ABOUT:
+                    response.AddValue("About", About);
+                    break;
+
+                case COMMAND_VERSION:
+                    response.AddValue("Version", Version);
                     break;
             }
             return true;
