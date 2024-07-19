@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Chetch.ChetchXMPP
 {
-    internal class ChetchXMPPServiceException : ChetchXMPPException
+    public class ChetchXMPPServiceException : ChetchXMPPException
     {
         public ChetchXMPPServiceException(String message) : base(message) { }
     }
