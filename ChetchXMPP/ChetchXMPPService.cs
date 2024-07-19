@@ -192,15 +192,15 @@ namespace Chetch.ChetchXMPP
                     try
                     {
                         bool respond = false;
-                        Message response = CreateResponse(eargs.Message);
+                        Message message = eargs.Message;
+                        Message response = CreateResponse(message);
                         try
                         {
-                            respond = messageReceived(eargs.Message, response);
+                            respond = messageReceived(message, response);
                         } catch(ChetchXMPPException e)
                         {
                             respond = true;
-                            response.Type = MessageType.ERROR;
-                            response.AddValue("Message", e.Message);
+                            response = CreateError(e, message);   
                         }
 
                         if (respond)
@@ -287,6 +287,20 @@ namespace Chetch.ChetchXMPP
             response.Tag = message.Tag;
 
             return response;
+        }
+
+        protected Message CreateError(Exception e, Message originatingMessage)
+        {
+            Message error = new Message(MessageType.ERROR);
+            if (originatingMessage != null)
+            {
+                error.Target = originatingMessage.Sender;
+                error.ResponseID = originatingMessage.ID;
+                error.Tag = originatingMessage.Tag;
+            }
+            error.AddValue("Message", e.Message);
+            error.AddValue("Exception", e.GetType().ToString());
+            return error;
         }
 
         private Message createNotificationOfEvent(ServiceEvent serviceEvent, String desc)
