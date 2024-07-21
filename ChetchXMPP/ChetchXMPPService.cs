@@ -21,6 +21,7 @@ namespace Chetch.ChetchXMPP
         const String COMMAND_HELP = "help";
         const String COMMAND_ABOUT = "about";
         const String COMMAND_VERSION = "version";
+        const String COMMAND_STATUS = "status";
 
         const int EVENT_ID_GENERICERROR = 88;
         const int EVENT_ID_CREATEXMPP = 1088;
@@ -41,6 +42,7 @@ namespace Chetch.ChetchXMPP
             Connected = 1,
             Disconnecting = 2,
             Stopping = 3,
+            StatusUpdate = 4,
         }
 
         protected class ServiceCommand
@@ -72,11 +74,11 @@ namespace Chetch.ChetchXMPP
             }
 
             public String HelpDescription => Implemented ? Description : Description + " (not implemented)";
-            
+
             public ServiceCommand(String command, String description, String shortcut, bool implemented)
             {
                 command = Sanitize(command);
-                if(shortcut == null)
+                if (shortcut == null)
                 {
                     shortcut = command[0].ToString();
                 } else
@@ -94,15 +96,38 @@ namespace Chetch.ChetchXMPP
                 Implemented = implemented;
             }
 
-            
+
         }
         #endregion
 
-        #region Fields
+        #region Fields and Properties
         ChetchXMPPConnection cnn;
         SortedDictionary<String, ServiceCommand> commands = new SortedDictionary<String, ServiceCommand>();
+
         protected String Version { get; set; } = "!.0";
-        protected String About { get; set;  } = String.Format("{0} is a Chetch XMPP Service", ServiceName);
+        protected String About { get; set; } = String.Format("{0} is a Chetch XMPP Service", ServiceName);
+        protected long ServerTimeInMillis => DateTimeOffset.Now.ToUnixTimeMilliseconds();
+
+        int statusCode = 0;
+        protected int StatusCode
+        {
+            get { return statusCode; }
+            set
+            {
+                if (value != statusCode)
+                {
+                    statusCode = value;
+
+                    Message notification = createNotificationOfEvent(ServiceEvent.StatusUpdate, "Status updated");
+                    Broadcast(notification);
+                }
+            }
+        }
+        protected String StatusMessage { get; set; } = String.Empty;
+
+        virtual protected Dictionary<String, Object> StatusDetails { get;  } = new Dictionary<String, Object>();
+        
+
         #endregion
 
         #region Methods
@@ -313,6 +338,15 @@ namespace Chetch.ChetchXMPP
             Message notification = new Message(MessageType.NOTIFICATION);
             notification.SubType = (int)serviceEvent;
             notification.AddValue("Description", desc);
+            switch (serviceEvent)
+            {
+                case ServiceEvent.StatusUpdate:
+                    notification.AddValue("StatusCode", StatusCode);
+                    notification.AddValue("StatusMessage", StatusMessage);
+                    notification.AddValue("StatusDetails", StatusDetails);
+                    notification.AddValue("ServerTimeInMillis", ServerTimeInMillis);
+                    break;
+            }
             return notification;
         }
         #endregion
@@ -337,12 +371,24 @@ namespace Chetch.ChetchXMPP
                 case MessageType.SUBSCRIBE:
                     response.Type = MessageType.SUBSCRIBE_RESPONSE;
                     response.AddValue("Welcome", String.Format("Welcome to {0} service", ServiceName));
+                    response.AddValue("StatusCode", StatusCode);
+                    response.AddValue("StatusMessage", StatusMessage);
+                    response.AddValue("ServerTimeInMillis", ServerTimeInMillis);
                     cnn.AddContact(message.Sender);
                     logger.LogWarning(EVENT_ID_SUBSCRIPTION, "{0} has subscribed", message.Sender);
                     return true;
 
+                case MessageType.STATUS_REQUEST:
+                    response.Type = MessageType.STATUS_RESPONSE;
+                    response.AddValue("StatusCode", StatusCode);
+                    response.AddValue("StatusMessage", StatusMessage);
+                    response.AddValue("StatusDetails", StatusDetails);
+                    response.AddValue("ServerTimeInMillis", ServerTimeInMillis);
+                    return true;
+
                 case MessageType.PING:
                     response.Type = MessageType.PING_RESPONSE;
+                    response.AddValue("ServerTimeInMillis", ServerTimeInMillis);
                     return true;
 
                 case MessageType.ERROR_TEST:
@@ -374,7 +420,6 @@ namespace Chetch.ChetchXMPP
             return false;
         }
 
-
         //Command related stuff
         virtual protected bool CommandReceived(ServiceCommand command, List<Object> arguments, Message response)
         {
@@ -396,6 +441,13 @@ namespace Chetch.ChetchXMPP
 
                 case COMMAND_VERSION:
                     response.AddValue("Version", Version);
+                    break;
+
+                case COMMAND_STATUS:
+                    response.AddValue("StatusCode", StatusCode);
+                    response.AddValue("StatusMessage", StatusMessage);
+                    response.AddValue("StatusDetails", StatusDetails);
+                    response.AddValue("ServerTimeInMillis", ServerTimeInMillis);
                     break;
             }
             return true;
