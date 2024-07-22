@@ -38,6 +38,9 @@ namespace Chetch.ChetchXMPP
         public event EventHandler<SessionState> SessionStateChanged;
         public event EventHandler<MessageReceivedArgs> MessageReceived;
 
+        public bool ReadyToSend => CurrentState == SessionState.Binded;
+        public bool ReadyToReceive => CurrentState == SessionState.Binded;
+
         private List<String> contacts = new List<String>();
 
         protected void OnSessionStateChange(SessionState sessionState)

@@ -32,6 +32,7 @@ namespace Chetch.ChetchXMPP
         const int EVENT_ID_MESSAGERECEIVEDERROR = 98;
         const int EVENT_ID_SENDRESPONSEERROR = 99;
         const int EVENT_ID_SUBSCRIPTION = 2010;
+        const int EVENT_ID_STATUS_CHANGE = 2020;
 
         #endregion
 
@@ -116,10 +117,20 @@ namespace Chetch.ChetchXMPP
             {
                 if (value != statusCode)
                 {
+                    logger.LogWarning(EVENT_ID_STATUS_CHANGE, "Status code changed from {0} to {1}", statusCode, value); ;
                     statusCode = value;
-
-                    Message notification = createNotificationOfEvent(ServiceEvent.StatusUpdate, "Status updated");
-                    Broadcast(notification);
+                    if (cnn != null && cnn.ReadyToSend)
+                    {
+                        try
+                        {
+                            Message notification = createNotificationOfEvent(ServiceEvent.StatusUpdate, "Status updated");
+                            Broadcast(notification);
+                        }
+                        catch (Exception e)
+                        {
+                            logger.LogError(EVENT_ID_GENERICERROR, e, e.Message);
+                        }
+                    }
                 }
             }
         }
@@ -179,9 +190,10 @@ namespace Chetch.ChetchXMPP
             AddCommand(COMMAND_HELP, "Lists commands for this service");
             AddCommand(COMMAND_ABOUT, "Some info this service");
             AddCommand(COMMAND_VERSION, "Service version");
+            AddCommand(COMMAND_STATUS, "Status of this service");
 
             //do some config
-            var config = getAppSettings();
+            var config = GetAppSettings();
             Version = config.GetValue<String>("Service:Version", Version);
             About = config.GetValue<String>("Service:About", About);
 
