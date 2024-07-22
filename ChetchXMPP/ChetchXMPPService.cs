@@ -220,7 +220,7 @@ namespace Chetch.ChetchXMPP
             cnn.SessionStateChanged += (sender, state) => {
                 try
                 {
-                    SessionStateChanged(state);
+                    handleSessionStateChanged(state);
                 } catch (Exception e)
                 {
                     logger.LogError(EVENT_ID_GENERICERROR, e, e.Message);
@@ -238,7 +238,7 @@ namespace Chetch.ChetchXMPP
                         Message response = CreateResponse(message);
                         try
                         {
-                            respond = messageReceived(message, response);
+                            respond = handleMessageReceived(message, response);
                         } catch(ChetchXMPPException e)
                         {
                             respond = true;
@@ -292,7 +292,7 @@ namespace Chetch.ChetchXMPP
         #endregion
 
         #region XMPP connection handlers
-        protected void SessionStateChanged(SessionState newState)
+        private void handleSessionStateChanged(SessionState newState)
         {
             ServiceEvent serviceEvent = ServiceEvent.None;
             String eventDescription = String.Empty;
@@ -376,7 +376,7 @@ namespace Chetch.ChetchXMPP
 
         #region Receiving Messages
 
-        private bool messageReceived(Message message, Message response)
+        private bool handleMessageReceived(Message message, Message response)
         {
             switch (message.Type)
             {
@@ -427,13 +427,13 @@ namespace Chetch.ChetchXMPP
                     response.AddValue("OriginalCommand", cmd.Command);
                     List<Object> args = message.GetList<Object>("Arguments");
                     
-                    return CommandReceived(cmd, args, response);
+                    return HandleCommandReceived(cmd, args, response);
             }
             return false;
         }
 
         //Command related stuff
-        virtual protected bool CommandReceived(ServiceCommand command, List<Object> arguments, Message response)
+        virtual protected bool HandleCommandReceived(ServiceCommand command, List<Object> arguments, Message response)
         {
             switch (command.Command)
             {
