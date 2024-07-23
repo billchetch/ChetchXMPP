@@ -46,7 +46,7 @@ namespace Chetch.ChetchXMPP
             StatusUpdate = 4,
         }
 
-        protected class ServiceCommand
+        public class ServiceCommand
         {
             static public String Sanitize(String command)
             {
@@ -66,11 +66,18 @@ namespace Chetch.ChetchXMPP
             {
                 get
                 {
-                    int i = Command.IndexOf(Shortcut);
-                    String p1 = Command.Substring(0, i);
-                    String r = String.Format("({0})", Shortcut);
-                    String p2 = Command.Substring(i + Shortcut.Length);
-                    return p1 + r + p2;
+                    if (String.IsNullOrEmpty(Shortcut))
+                    {
+                        return Command;
+                    }
+                    else
+                    {
+                        int i = Command.IndexOf(Shortcut);
+                        String p1 = Command.Substring(0, i);
+                        String r = String.Format("({0})", Shortcut);
+                        String p2 = Command.Substring(i + Shortcut.Length);
+                        return p1 + r + p2;
+                    }
                 }
             }
 
@@ -79,15 +86,12 @@ namespace Chetch.ChetchXMPP
             public ServiceCommand(String command, String description, String shortcut, bool implemented)
             {
                 command = Sanitize(command);
-                if (shortcut == null)
-                {
-                    shortcut = command[0].ToString();
-                } else
+                if (!String.IsNullOrEmpty(shortcut))
                 {
                     shortcut = Sanitize(shortcut);
                 }
 
-                if (!command.Contains(shortcut))
+                if (!String.IsNullOrEmpty(shortcut) && !command.Contains(shortcut))
                 {
                     throw new ArgumentException("Shortcut must be contained in command");
                 }
@@ -97,7 +101,13 @@ namespace Chetch.ChetchXMPP
                 Implemented = implemented;
             }
 
-
+            public void AssertArguments(int passedArguments, int requiredArguments)
+            {
+                if (passedArguments != requiredArguments)
+                {
+                    throw new ArgumentException(String.Format("Command {0} passed {1} arguments but requires {2} arguments", Command, passedArguments, requiredArguments));
+                }
+            }
         }
         #endregion
 
@@ -171,13 +181,21 @@ namespace Chetch.ChetchXMPP
             {
                 foreach(var cmd in commands.Values)
                 {
-                    if (cmd.Shortcut.Equals(commandOrShortcut))
+                    if (!String.IsNullOrEmpty(cmd.Shortcut) && cmd.Shortcut.Equals(commandOrShortcut))
                     {
                         return cmd;
                     }
                 }
             }
             return null;
+        }
+
+        virtual protected void AddCommands()
+        {
+            AddCommand(COMMAND_HELP, "Lists commands for this service", "h");
+            AddCommand(COMMAND_ABOUT, "Some info this service", "a");
+            AddCommand(COMMAND_VERSION, "Service version", "v");
+            AddCommand(COMMAND_STATUS, "Status of this service", "s");
         }
 
         #endregion
@@ -187,10 +205,7 @@ namespace Chetch.ChetchXMPP
         {
             //unnecessary wait???
             await Task.Delay(100);
-            AddCommand(COMMAND_HELP, "Lists commands for this service");
-            AddCommand(COMMAND_ABOUT, "Some info this service");
-            AddCommand(COMMAND_VERSION, "Service version");
-            AddCommand(COMMAND_STATUS, "Status of this service");
+            AddCommands();
 
             //do some config
             var config = GetAppSettings();
@@ -331,7 +346,8 @@ namespace Chetch.ChetchXMPP
             return response;
         }
 
-        protected Message CreateError(Exception e, Message originatingMessage)
+
+        protected Message CreateError(String errorMessage, Message originatingMessage)
         {
             Message error = new Message(MessageType.ERROR);
             if (originatingMessage != null)
@@ -340,9 +356,15 @@ namespace Chetch.ChetchXMPP
                 error.ResponseID = originatingMessage.ID;
                 error.Tag = originatingMessage.Tag;
             }
-            error.AddValue("Message", e.Message);
-            error.AddValue("Exception", e.GetType().ToString());
+            error.AddValue("Message",errorMessage);
             return error;
+        }
+        protected Message CreateError(Exception e, Message originatingMessage)
+        {
+            var error = CreateError(e.Message, originatingMessage);
+            error.AddValue("Exception", e.GetType().ToString());
+
+            return error; ;
         }
 
         private Message createNotificationOfEvent(ServiceEvent serviceEvent, String desc)
@@ -364,12 +386,12 @@ namespace Chetch.ChetchXMPP
         #endregion
 
         #region Sending Messages
-        protected void Broadcast(Message message)
+        virtual protected void Broadcast(Message message)
         {
             cnn.Broadcast(message);
         }
 
-        protected void SendMessage(Message message){
+        virtual protected void SendMessage(Message message){
             cnn.SendMessageAsync(message);
         }
         #endregion
@@ -414,18 +436,28 @@ namespace Chetch.ChetchXMPP
                     {
                         throw new ChetchXMPPServiceException("Command cannot be null or empty");
                     }
+
                     ServiceCommand cmd = GetCommand(command);
                     if(cmd == null)
                     {
-                        throw new ChetchXMPPServiceException("Command not found");
+                        throw new ChetchXMPPServiceException(String.Format("Command {0} not found", command));
                     }
                     if (!cmd.Implemented)
                     {
-                        throw new ChetchXMPPServiceException("Command not yet implemented");
+                        throw new ChetchXMPPServiceException(String.Format("Command {0} not yet implemented", command));
                     }
                     //always return the full version of the command
                     response.AddValue("OriginalCommand", cmd.Command);
-                    List<Object> args = message.GetList<Object>("Arguments");
+
+                    //get the command arguments or use an empty list if there are none
+                    List<Object> args;
+                    if (message.HasValue("Arguments")) 
+                    {
+                        args = message.GetList<Object>("Arguments");
+                    } else
+                    {
+                        args = new List<Object>();
+                    }
                     
                     return HandleCommandReceived(cmd, args, response);
             }

@@ -40,6 +40,7 @@ namespace Chetch.ChetchXMPP
 
         public bool ReadyToSend => CurrentState == SessionState.Binded;
         public bool ReadyToReceive => CurrentState == SessionState.Binded;
+        public bool Ready => ReadyToReceive && ReadyToSend;
 
         private List<String> contacts = new List<String>();
 
@@ -59,8 +60,25 @@ namespace Chetch.ChetchXMPP
                 String body = message.Body;
                 try
                 {
-                    Messaging.Message chetchMessage = Messaging.Message.Deserialize(body);
-                    eargs.Message = chetchMessage;
+                    Messaging.Message chetchMessage = Messaging.Message.Deserialize(body); ;
+                    if (message.Error != null && message.Error.HasAttribute("code"))
+                    {
+                        int errorCode = Int32.Parse(message.Error.GetAttribute("code"));
+                        Messaging.Message errorMessage = new Messaging.Message(Messaging.MessageType.ERROR);
+                        Jid from = new Jid(message.From);
+                        Jid to = new Jid(message.To);
+                        errorMessage.Target = to.Bare.ToString();
+                        errorMessage.Sender = from.Bare.ToString();
+                        errorMessage.AddValue("ErrorCode", errorCode);
+                        errorMessage.AddValue("ErrorType", message.Error.GetAttribute("type"));
+                        errorMessage.AddValue("ErrorMessage", message.Error.FirstElement.Name.LocalName);
+                        errorMessage.AddValue("OriginalMessage", chetchMessage);
+                        eargs.Message = errorMessage;
+                    }
+                    else
+                    {
+                        eargs.Message = chetchMessage;
+                    }
                 } catch(Exception)
                 {
                     //what to do here
