@@ -198,6 +198,14 @@ namespace Chetch.ChetchXMPP
             AddCommand(COMMAND_STATUS, "Status of this service", "s");
         }
 
+        protected String DecryptPassword(String pwd, String encryption)
+        {
+            switch (encryption)
+            {
+                default:
+                    return pwd;
+            }
+        }
         #endregion
 
         #region Service lifecycle
@@ -215,20 +223,10 @@ namespace Chetch.ChetchXMPP
             String username = config.GetValue<String>("Credentials:Username");
             String password = config.GetValue<String>("Credentials:Password");
             String encryption = config.GetValue<String>("Credentials:Encryption");
-            switch (encryption?.ToLower())
-            {
-                case "default":
-                    //TODO: descrypt
-                    break;
+            password = DecryptPassword(password, encryption);
 
-                default:
-                    //do nothing
-                    break;
-            }
-            logger.LogInformation(EVENT_ID_CREATEXMPP, "Creating XMPP connection for user {0}...", username);
-
-            
             //create the connection
+            logger.LogInformation(EVENT_ID_CREATEXMPP, "Creating XMPP connection for user {0}...", username);
             cnn = new ChetchXMPPConnection(username, password);
             
             //Set event handlers
@@ -460,6 +458,9 @@ namespace Chetch.ChetchXMPP
                     }
                     
                     return HandleCommandReceived(cmd, args, response);
+
+                case MessageType.ALERT:
+                    return HandleAlertReceived(message, message.SubType, response);
             }
             return false;
         }
@@ -495,6 +496,12 @@ namespace Chetch.ChetchXMPP
                     break;
             }
             return true;
+        }
+        
+        //Alert related stuff
+        virtual protected bool HandleAlertReceived(Message alert, int serverity, Message response)
+        {
+            return false;
         }
         #endregion
     }
