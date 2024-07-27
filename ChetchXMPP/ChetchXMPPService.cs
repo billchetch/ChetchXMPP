@@ -12,6 +12,7 @@ using XmppDotNet;
 using XmppDotNet.Xmpp.Sasl;
 using System.ComponentModel;
 using Microsoft.Extensions.Hosting;
+using XmppDotNet.Xmpp.Muc.User;
 
 namespace Chetch.ChetchXMPP
 {
@@ -103,6 +104,14 @@ namespace Chetch.ChetchXMPP
                     throw new ArgumentException(String.Format("Command {0} passed {1} arguments but requires {2} arguments", Command, passedArguments, requiredArguments));
                 }
             }
+
+            public void AssertArguments(int passedArguments)
+            {
+                if (passedArguments == 0)
+                {
+                    throw new ArgumentException(String.Format("Command {0} requires at least 1 argument", Command));
+                }
+            }
         }
         #endregion
 
@@ -124,6 +133,8 @@ namespace Chetch.ChetchXMPP
                 {
                     logger.LogWarning(EVENT_ID_STATUS_CHANGE, "Status code changed from {0} to {1}", statusCode, value); ;
                     statusCode = value;
+                    StatusChanged?.Invoke(this, statusCode);
+
                     if (cnn != null && cnn.ReadyToSend)
                     {
                         try
@@ -140,6 +151,8 @@ namespace Chetch.ChetchXMPP
             }
         }
         protected String StatusMessage { get; set; } = String.Empty;
+
+        protected event EventHandler<int> StatusChanged;
 
         virtual protected Dictionary<String, Object> StatusDetails { get;  } = new Dictionary<String, Object>();
         
@@ -246,8 +259,8 @@ namespace Chetch.ChetchXMPP
                         Message response = CreateResponse(message);
                         try
                         {
-                            respond = handleMessageReceived(message, response);
-                        } catch(ChetchXMPPException e)
+                            respond = HandleMessageReceived(message, response);
+                        } catch(Exception e)
                         {
                             respond = true;
                             response = CreateError(e, message);   
@@ -391,7 +404,7 @@ namespace Chetch.ChetchXMPP
 
         #region Receiving Messages
 
-        private bool handleMessageReceived(Message message, Message response)
+        protected virtual bool HandleMessageReceived(Message message, Message response)
         {
             switch (message.Type)
             {

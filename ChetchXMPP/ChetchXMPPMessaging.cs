@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Chetch.Messaging;
 using XmppDotNet.Xmpp.Base;
@@ -69,9 +72,46 @@ namespace Chetch.ChetchXMPP
             return message;
         }
 
-        static public Chetch.Messaging.Message CreateCommandMessage(String command)
+        static public Chetch.Messaging.Message CreateCommandMessage(String commandString)
         {
-            return CreateCommandMessage(command, null);
+            if (String.IsNullOrEmpty(commandString))
+            {
+                throw new ArgumentException("ChetchXMPPService::CreateCommandMessage command string cannot be empty or null");
+            }
+
+            var message = new Chetch.Messaging.Message(MessageType.COMMAND);
+            var parts = commandString.Split(' ');
+            message.AddValue(MESSAGE_FIELD_COMMAND, parts[0].ToLower().Trim());
+            if(parts.Length > 1)
+            {
+                List<String> args = new List<String>();
+                for(int i = 1; i < parts.Length; i++)
+                {
+                    if (!String.IsNullOrEmpty(parts[i]))
+                    {
+                        var arg = parts[i].ToLower().Trim();
+                        args.Add(arg);
+                    }
+                }
+                if(args.Count > 0)
+                {
+                    message.AddValue(MESSAGE_FIELD_ARGUMENTS, args);
+                }
+            }
+
+            return message;
+        }
+    
+        static public T GetArgument<T>(int idx, List<Object> arguments, T defaultValue = default(T))
+        {
+            if(arguments == null || arguments.Count == 0 || idx >= arguments.Count)
+            {
+                return defaultValue;
+            }
+            var arg = arguments[idx];
+            var json = JsonSerializer.Serialize(arg);
+            var carg = JsonSerializer.Deserialize<T>(json);
+            return carg;
         }
     }
 }
