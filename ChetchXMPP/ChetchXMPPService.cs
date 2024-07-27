@@ -15,14 +15,10 @@ using Microsoft.Extensions.Hosting;
 
 namespace Chetch.ChetchXMPP
 {
+    //Command related stuff
     public class ChetchXMPPService<T>(ILogger<T> logger) : Service<T>(logger) where T : BackgroundService
     {
         #region Constants
-        const String COMMAND_HELP = "help";
-        const String COMMAND_ABOUT = "about";
-        const String COMMAND_VERSION = "version";
-        const String COMMAND_STATUS = "status";
-
         const int EVENT_ID_GENERICERROR = 88;
         const int EVENT_ID_CREATEXMPP = 1088;
         const int EVENT_ID_CONNECTIONERROR = 188;
@@ -33,7 +29,6 @@ namespace Chetch.ChetchXMPP
         const int EVENT_ID_SENDRESPONSEERROR = 99;
         const int EVENT_ID_SUBSCRIPTION = 2010;
         const int EVENT_ID_STATUS_CHANGE = 2020;
-
         #endregion
 
         #region Class declarations
@@ -192,10 +187,10 @@ namespace Chetch.ChetchXMPP
 
         virtual protected void AddCommands()
         {
-            AddCommand(COMMAND_HELP, "Lists commands for this service", "h");
-            AddCommand(COMMAND_ABOUT, "Some info this service", "a");
-            AddCommand(COMMAND_VERSION, "Service version", "v");
-            AddCommand(COMMAND_STATUS, "Status of this service", "s");
+            AddCommand(ChetchXMPPMessaging.COMMAND_HELP, "Lists commands for this service", "h");
+            AddCommand(ChetchXMPPMessaging.COMMAND_ABOUT, "Some info this service", "a");
+            AddCommand(ChetchXMPPMessaging.COMMAND_VERSION, "Service version", "v");
+            AddCommand(ChetchXMPPMessaging.COMMAND_STATUS, "Status of this service", "s");
         }
 
         protected String DecryptPassword(String pwd, String encryption)
@@ -429,12 +424,7 @@ namespace Chetch.ChetchXMPP
 
                 case MessageType.COMMAND:
                     response.Type = MessageType.COMMAND_RESPONSE;
-                    String command = message.GetString("Command");
-                    if(String.IsNullOrEmpty(command))
-                    {
-                        throw new ChetchXMPPServiceException("Command cannot be null or empty");
-                    }
-
+                    String command = ChetchXMPPMessaging.GetCommandFromMessage(message);
                     ServiceCommand cmd = GetCommand(command);
                     if(cmd == null)
                     {
@@ -447,30 +437,20 @@ namespace Chetch.ChetchXMPP
                     //always return the full version of the command
                     response.AddValue("OriginalCommand", cmd.Command);
 
-                    //get the command arguments or use an empty list if there are none
-                    List<Object> args;
-                    if (message.HasValue("Arguments")) 
-                    {
-                        args = message.GetList<Object>("Arguments");
-                    } else
-                    {
-                        args = new List<Object>();
-                    }
+                    //get the command arguments (returns empty list at a minimum)
+                    List<Object> args = ChetchXMPPMessaging.GetArgumentsFromMessage(message);
                     
+                    //pass the cmd and args to a handler
                     return HandleCommandReceived(cmd, args, response);
-
-                case MessageType.ALERT:
-                    return HandleAlertReceived(message, message.SubType, response);
             }
             return false;
         }
 
-        //Command related stuff
         virtual protected bool HandleCommandReceived(ServiceCommand command, List<Object> arguments, Message response)
         {
             switch (command.Command)
             {
-                case COMMAND_HELP:
+                case ChetchXMPPMessaging.COMMAND_HELP:
                     Dictionary<String, String> commandHelp = new Dictionary<String, String>();
                     foreach (var key in commands.Keys)
                     {
@@ -480,15 +460,15 @@ namespace Chetch.ChetchXMPP
                     response.AddValue("Help", commandHelp);
                     break;
 
-                case COMMAND_ABOUT:
+                case ChetchXMPPMessaging.COMMAND_ABOUT:
                     response.AddValue("About", About);
                     break;
 
-                case COMMAND_VERSION:
+                case ChetchXMPPMessaging.COMMAND_VERSION:
                     response.AddValue("Version", Version);
                     break;
 
-                case COMMAND_STATUS:
+                case ChetchXMPPMessaging.COMMAND_STATUS:
                     response.AddValue("StatusCode", StatusCode);
                     response.AddValue("StatusMessage", StatusMessage);
                     response.AddValue("StatusDetails", StatusDetails);
@@ -496,12 +476,6 @@ namespace Chetch.ChetchXMPP
                     break;
             }
             return true;
-        }
-        
-        //Alert related stuff
-        virtual protected bool HandleAlertReceived(Message alert, int serverity, Message response)
-        {
-            return false;
         }
         #endregion
     }
