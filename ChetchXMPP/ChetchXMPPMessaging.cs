@@ -53,27 +53,25 @@ namespace Chetch.ChetchXMPP
             return args;
         }
 
-        static public Chetch.Messaging.Message CreateCommandMessage(String commandAndArgs)
+        static public Chetch.Messaging.Message CreateCommandMessage(String command, params Object[] args)
         {
-            if (String.IsNullOrEmpty(commandAndArgs))
+            if (String.IsNullOrEmpty(command))
             {
-                throw new ArgumentException("ChetchXMPPService::CreateCommandMessage commandAndArgs param cannot be empty or null");
+                throw new ArgumentException("ChetchXMPPService::CreateCommandMessage command param cannot be empty or null");
             }
             var message = new Chetch.Messaging.Message(MessageType.COMMAND);
-            var parts = commandAndArgs.Split(' ');
-            String command = parts[0];
             message.AddValue(MESSAGE_FIELD_COMMAND, command);
 
-            List<String> args = new List<String>();
-            for (int i = 1; i < parts.Length; i++)
+            if (args != null && args.Length > 0)
             {
-                if (!String.IsNullOrEmpty(parts[i]))
-                {
-                    args.Add(parts[i].Trim());
-                }
+                message.AddValue(MESSAGE_FIELD_ARGUMENTS, args.ToList<Object>());
             }
-            message.AddValue(MESSAGE_FIELD_ARGUMENTS, args);
             return message;
+        }
+
+        static public Chetch.Messaging.Message CreateCommandMessage(String command)
+        {
+            return CreateCommandMessage(command, null);
         }
     }
 }
