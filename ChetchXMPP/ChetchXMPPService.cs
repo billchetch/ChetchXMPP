@@ -33,13 +33,14 @@ namespace Chetch.ChetchXMPP
         #endregion
 
         #region Class declarations
-        enum ServiceEvent
+        protected enum ServiceEvent
         {
             None = 0, //for initialising
-            Connected = 1,
-            Disconnecting = 2,
-            Stopping = 3,
-            StatusUpdate = 4,
+            Disconnected = 1,
+            Connected = 2,
+            Disconnecting = 3,
+            Stopping = 4,
+            StatusUpdate = 5,
         }
 
         public class ServiceCommand
@@ -123,6 +124,14 @@ namespace Chetch.ChetchXMPP
         protected String About { get; set; } = String.Format("{0} is a Chetch XMPP Service", ServiceName);
         protected long ServerTimeInMillis => DateTimeOffset.Now.ToUnixTimeMilliseconds();
 
+        //Service Event relates to the underlying connectvity of the service.  This differe from the service Status
+        //which is bespoke for each service and indicates a change in the particular service but not in its connectivity
+        //Indeed a status change is a Service Event.
+        protected event EventHandler<ServiceEvent> ServiceChanged;
+        protected bool ServiceConnected => cnn != null && cnn.Ready; //for convenience
+
+        //Status related stuff is bespoke to a particular service implementation and does not related to the general connectivity
+        //and starting or stopping of a service
         int statusCode = 0;
         protected int StatusCode
         {
@@ -134,6 +143,7 @@ namespace Chetch.ChetchXMPP
                     logger.LogWarning(EVENT_ID_STATUS_CHANGE, "Status code changed from {0} to {1}", statusCode, value); ;
                     statusCode = value;
                     StatusChanged?.Invoke(this, statusCode);
+                    ServiceChanged?.Invoke(this, ServiceEvent.StatusUpdate);
 
                     if (cnn != null && cnn.ReadyToSend)
                     {
@@ -155,8 +165,6 @@ namespace Chetch.ChetchXMPP
         protected event EventHandler<int> StatusChanged;
 
         virtual protected Dictionary<String, Object> StatusDetails { get;  } = new Dictionary<String, Object>();
-        
-
         #endregion
 
         #region Methods
@@ -328,10 +336,14 @@ namespace Chetch.ChetchXMPP
                     serviceEvent = ServiceEvent.Disconnecting;
                     eventDescription = String.Format("{0} is disconnecting", cnn.Username);
                     break;
+
+                case SessionState.Disconnected:
+                    break;
             }
 
             if(serviceEvent != ServiceEvent.None)
             {
+                ServiceChanged?.Invoke(this, serviceEvent);
                 Message notification = createNotificationOfEvent(serviceEvent, eventDescription);
                 Broadcast(notification);
             }

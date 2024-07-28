@@ -113,5 +113,16 @@ namespace Chetch.ChetchXMPP
             var carg = JsonSerializer.Deserialize<T>(json);
             return carg;
         }
+
+        static public Chetch.Messaging.Message CreateAlertMessage(int alertCode, String target = null)
+        {
+            var msg = new Messaging.Message(MessageType.ALERT);
+            msg.SubType = alertCode;
+            if(target != null)
+            {
+                msg.Target = target;
+            }
+            return msg;
+        }
     }
 }
