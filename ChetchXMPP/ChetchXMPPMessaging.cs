@@ -16,6 +16,7 @@ namespace Chetch.ChetchXMPP
         #region Constants
         public const String MESSAGE_FIELD_COMMAND = "Command";
         public const String MESSAGE_FIELD_ARGUMENTS = "Arguments";
+        public const String MESSAGE_FIELD_ORIGINAL_COMMAND = "OriginalCommand";
 
         public const String COMMAND_HELP = "help";
         public const String COMMAND_ABOUT = "about";
@@ -119,6 +120,16 @@ namespace Chetch.ChetchXMPP
             var msg = new Messaging.Message(MessageType.ALERT);
             msg.SubType = alertCode;
             if(target != null)
+            {
+                msg.Target = target;
+            }
+            return msg;
+        }
+
+        static public Chetch.Messaging.Message CreateStatusRequestMessage(String target = null)
+        {
+            var msg = new Messaging.Message(MessageType.STATUS_REQUEST);
+            if (target != null)
             {
                 msg.Target = target;
             }

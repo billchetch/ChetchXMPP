@@ -60,7 +60,7 @@ namespace Chetch.ChetchXMPP
                 String body = message.Body;
                 try
                 {
-                    Messaging.Message chetchMessage = Messaging.Message.Deserialize(body); ;
+                    Messaging.Message chetchMessage = Messaging.Message.Deserialize(body);
                     if (message.Error != null && message.Error.HasAttribute("code"))
                     {
                         int errorCode = Int32.Parse(message.Error.GetAttribute("code"));

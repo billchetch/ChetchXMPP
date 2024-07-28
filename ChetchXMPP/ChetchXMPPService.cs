@@ -122,7 +122,8 @@ namespace Chetch.ChetchXMPP
 
         protected String Version { get; set; } = "!.0";
         protected String About { get; set; } = String.Format("{0} is a Chetch XMPP Service", ServiceName);
-        protected long ServerTimeInMillis => DateTimeOffset.Now.ToUnixTimeMilliseconds();
+        protected int ServerTimeOffset => DateTimeOffset.Now.Offset.Hours;
+        protected DateTime ServerTime => DateTime.Now;
 
         //Service Event relates to the underlying connectvity of the service.  This differe from the service Status
         //which is bespoke for each service and indicates a change in the particular service but not in its connectivity
@@ -395,8 +396,8 @@ namespace Chetch.ChetchXMPP
                 case ServiceEvent.StatusUpdate:
                     notification.AddValue("StatusCode", StatusCode);
                     notification.AddValue("StatusMessage", StatusMessage);
-                    notification.AddValue("StatusDetails", StatusDetails);
-                    notification.AddValue("ServerTimeInMillis", ServerTimeInMillis);
+                    notification.AddValue("ServerTime", ServerTime);
+                    notification.AddValue("ServerTimeOffset", ServerTimeOffset);
                     break;
             }
             return notification;
@@ -425,7 +426,8 @@ namespace Chetch.ChetchXMPP
                     response.AddValue("Welcome", String.Format("Welcome to {0} service", ServiceName));
                     response.AddValue("StatusCode", StatusCode);
                     response.AddValue("StatusMessage", StatusMessage);
-                    response.AddValue("ServerTimeInMillis", ServerTimeInMillis);
+                    response.AddValue("ServerTime", ServerTime);
+                    response.AddValue("ServerTimeOffset", ServerTimeOffset);
                     cnn.AddContact(message.Sender);
                     logger.LogWarning(EVENT_ID_SUBSCRIPTION, "{0} has subscribed", message.Sender);
                     return true;
@@ -435,12 +437,15 @@ namespace Chetch.ChetchXMPP
                     response.AddValue("StatusCode", StatusCode);
                     response.AddValue("StatusMessage", StatusMessage);
                     response.AddValue("StatusDetails", StatusDetails);
-                    response.AddValue("ServerTimeInMillis", ServerTimeInMillis);
+                    response.AddValue("ServerTime", ServerTime);
+                    response.AddValue("ServerTimeOffset", ServerTimeOffset);
                     return true;
 
                 case MessageType.PING:
                     response.Type = MessageType.PING_RESPONSE;
-                    response.AddValue("ServerTimeInMillis", ServerTimeInMillis);
+                    response.AddValue("StatusDetails", StatusDetails);
+                    response.AddValue("ServerTime", ServerTime);
+                    response.AddValue("ServerTimeOffset", ServerTimeOffset);
                     return true;
 
                 case MessageType.ERROR_TEST:
@@ -460,13 +465,17 @@ namespace Chetch.ChetchXMPP
                         throw new ChetchXMPPServiceException(String.Format("Command {0} not yet implemented", command));
                     }
                     //always return the full version of the command
-                    response.AddValue("OriginalCommand", cmd.Command);
+                    response.AddValue(ChetchXMPPMessaging.MESSAGE_FIELD_ORIGINAL_COMMAND, cmd.Command);
 
                     //get the command arguments (returns empty list at a minimum)
                     List<Object> args = ChetchXMPPMessaging.GetArgumentsFromMessage(message);
                     
                     //pass the cmd and args to a handler
                     return HandleCommandReceived(cmd, args, response);
+
+                case MessageType.COMMAND_RESPONSE:
+                    String originalCommand = message.GetString(ChetchXMPPMessaging.MESSAGE_FIELD_ORIGINAL_COMMAND);
+                    return HandleCommandResponseReceived(originalCommand, message, response);
             }
             return false;
         }
@@ -497,10 +506,16 @@ namespace Chetch.ChetchXMPP
                     response.AddValue("StatusCode", StatusCode);
                     response.AddValue("StatusMessage", StatusMessage);
                     response.AddValue("StatusDetails", StatusDetails);
-                    response.AddValue("ServerTimeInMillis", ServerTimeInMillis);
+                    response.AddValue("ServerTime", ServerTime);
+                    response.AddValue("ServerTimeOffset", ServerTimeOffset);
                     break;
             }
             return true;
+        }
+        
+        virtual protected bool HandleCommandResponseReceived(String originalCommand, Message commandResponse, Message response)
+        {
+            return false;
         }
         #endregion
     }
