@@ -30,17 +30,23 @@ namespace Chetch.ChetchXMPP
         const int EVENT_ID_SENDRESPONSEERROR = 99;
         const int EVENT_ID_SUBSCRIPTION = 2010;
         const int EVENT_ID_STATUS_CHANGE = 2020;
+
+        public const String COMMAND_HELP = "help";
+        public const String COMMAND_ABOUT = "about";
+        public const String COMMAND_VERSION = "version";
+
+        public const String MESSAGE_FIELD_SERVICE_EVENT = "ServiceEvent";
         #endregion
 
         #region Class declarations
         protected enum ServiceEvent
         {
             None = 0, //for initialising
-            Disconnected = 1,
-            Connected = 2,
-            Disconnecting = 3,
-            Stopping = 4,
-            StatusUpdate = 5,
+            Disconnected = 10000,
+            Connected = 10001,
+            Disconnecting = 10002,
+            Stopping = 10003,
+            StatusUpdate = 10004,
         }
 
         public class ServiceCommand
@@ -209,10 +215,9 @@ namespace Chetch.ChetchXMPP
 
         virtual protected void AddCommands()
         {
-            AddCommand(ChetchXMPPMessaging.COMMAND_HELP, "Lists commands for this service", "h");
-            AddCommand(ChetchXMPPMessaging.COMMAND_ABOUT, "Some info this service", "a");
-            AddCommand(ChetchXMPPMessaging.COMMAND_VERSION, "Service version", "v");
-            AddCommand(ChetchXMPPMessaging.COMMAND_STATUS, "Status of this service", "s");
+            AddCommand(COMMAND_HELP, "Lists commands for this service", "h");
+            AddCommand(COMMAND_ABOUT, "Some info this service", "a");
+            AddCommand(COMMAND_VERSION, "Service version", "v");
         }
 
         protected String DecryptPassword(String pwd, String encryption)
@@ -388,8 +393,8 @@ namespace Chetch.ChetchXMPP
 
         private Message createNotificationOfEvent(ServiceEvent serviceEvent, String desc)
         {
-            Message notification = new Message(MessageType.NOTIFICATION);
-            notification.SubType = (int)serviceEvent;
+            Message notification = ChetchXMPPMessaging.CreateNotificationMessage((int)serviceEvent);
+            notification.AddValue(MESSAGE_FIELD_SERVICE_EVENT, serviceEvent);
             notification.AddValue("Description", desc);
             switch (serviceEvent)
             {
@@ -484,7 +489,7 @@ namespace Chetch.ChetchXMPP
         {
             switch (command.Command)
             {
-                case ChetchXMPPMessaging.COMMAND_HELP:
+                case COMMAND_HELP:
                     Dictionary<String, String> commandHelp = new Dictionary<String, String>();
                     foreach (var key in commands.Keys)
                     {
@@ -494,20 +499,12 @@ namespace Chetch.ChetchXMPP
                     response.AddValue("Help", commandHelp);
                     break;
 
-                case ChetchXMPPMessaging.COMMAND_ABOUT:
+                case COMMAND_ABOUT:
                     response.AddValue("About", About);
                     break;
 
-                case ChetchXMPPMessaging.COMMAND_VERSION:
+                case COMMAND_VERSION:
                     response.AddValue("Version", Version);
-                    break;
-
-                case ChetchXMPPMessaging.COMMAND_STATUS:
-                    response.AddValue("StatusCode", StatusCode);
-                    response.AddValue("StatusMessage", StatusMessage);
-                    response.AddValue("StatusDetails", StatusDetails);
-                    response.AddValue("ServerTime", ServerTime);
-                    response.AddValue("ServerTimeOffset", ServerTimeOffset);
                     break;
             }
             return true;

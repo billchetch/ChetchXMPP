@@ -17,11 +17,6 @@ namespace Chetch.ChetchXMPP
         public const String MESSAGE_FIELD_COMMAND = "Command";
         public const String MESSAGE_FIELD_ARGUMENTS = "Arguments";
         public const String MESSAGE_FIELD_ORIGINAL_COMMAND = "OriginalCommand";
-
-        public const String COMMAND_HELP = "help";
-        public const String COMMAND_ABOUT = "about";
-        public const String COMMAND_VERSION = "version";
-        public const String COMMAND_STATUS = "status";
         #endregion
 
         static public String GetCommandFromMessage(Chetch.Messaging.Message message)
@@ -113,6 +108,17 @@ namespace Chetch.ChetchXMPP
             var json = JsonSerializer.Serialize(arg);
             var carg = JsonSerializer.Deserialize<T>(json);
             return carg;
+        }
+
+        static public Chetch.Messaging.Message CreateNotificationMessage(int subType, String target = null)
+        {
+            var msg = new Messaging.Message(MessageType.NOTIFICATION);
+            msg.SubType = subType;
+            if (target != null)
+            {
+                msg.Target = target;
+            }
+            return msg;
         }
 
         static public Chetch.Messaging.Message CreateAlertMessage(int alertCode, String target = null)
