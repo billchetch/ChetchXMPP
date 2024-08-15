@@ -105,8 +105,17 @@ namespace Chetch.ChetchXMPP
                 return defaultValue;
             }
             var arg = arguments[idx];
-            var json = JsonSerializer.Serialize(arg);
-            var carg = JsonSerializer.Deserialize<T>(json);
+            T carg;
+            Type type = typeof(T);
+            if (type.IsEnum)
+            {
+                carg = (T)Enum.Parse(typeof(T), arg.ToString());
+            }
+            else
+            {
+                var json = JsonSerializer.Serialize(arg);
+                carg = JsonSerializer.Deserialize<T>(json);
+            }
             return carg;
         }
 

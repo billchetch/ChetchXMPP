@@ -388,7 +388,7 @@ namespace Chetch.ChetchXMPP
             var error = CreateError(e.Message, originatingMessage);
             error.AddValue("Exception", e.GetType().ToString());
 
-            return error; ;
+            return error;
         }
 
         private Message createNotificationOfEvent(ServiceEvent serviceEvent, String desc)
