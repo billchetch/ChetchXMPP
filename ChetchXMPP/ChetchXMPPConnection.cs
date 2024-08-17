@@ -31,6 +31,8 @@ namespace Chetch.ChetchXMPP
         
         const String CHETCH_MESSAGE_SUBJECT = "chetch.message";
 
+        public const int ERROR_CODE_SERVICE_UNAVAILABLE = 503;
+
         private XmppClient xmppClient;
         public SessionState CurrentState { get; internal set; } = SessionState.Disconnected;
         public String Username => xmppClient?.Jid.Bare.ToString();
