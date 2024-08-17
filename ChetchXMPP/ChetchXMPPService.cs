@@ -123,7 +123,8 @@ namespace Chetch.ChetchXMPP
         #endregion
 
         #region Fields and Properties
-        ChetchXMPPConnection cnn;
+        protected ChetchXMPPConnection Connection { get; private set; }
+
         SortedDictionary<String, ServiceCommand> commands = new SortedDictionary<String, ServiceCommand>();
 
         protected String Version { get; set; } = "!.0";
@@ -135,7 +136,7 @@ namespace Chetch.ChetchXMPP
         //which is bespoke for each service and indicates a change in the particular service but not in its connectivity
         //Indeed a status change is a Service Event.
         protected event EventHandler<ServiceEvent> ServiceChanged;
-        protected bool ServiceConnected => cnn != null && cnn.Ready; //for convenience
+        protected bool ServiceConnected => Connection != null && Connection.Ready; //for convenience
 
         //Status related stuff is bespoke to a particular service implementation and does not related to the general connectivity
         //and starting or stopping of a service
@@ -152,7 +153,7 @@ namespace Chetch.ChetchXMPP
                     StatusChanged?.Invoke(this, statusCode);
                     ServiceChanged?.Invoke(this, ServiceEvent.StatusUpdate);
 
-                    if (cnn != null && cnn.ReadyToSend)
+                    if (Connection != null && Connection.ReadyToSend)
                     {
                         try
                         {
@@ -249,10 +250,10 @@ namespace Chetch.ChetchXMPP
 
             //create the connection
             logger.LogInformation(EVENT_ID_CREATEXMPP, "Creating XMPP connection for user {0}...", username);
-            cnn = new ChetchXMPPConnection(username, password);
-            
+            Connection = new ChetchXMPPConnection(username, password);
+
             //Set event handlers
-            cnn.SessionStateChanged += (sender, state) => {
+            Connection.SessionStateChanged += (sender, state) => {
                 try
                 {
                     handleSessionStateChanged(state);
@@ -262,7 +263,7 @@ namespace Chetch.ChetchXMPP
                 }
             };
 
-            cnn.MessageReceived += (sender, eargs) =>
+            Connection.MessageReceived += (sender, eargs) =>
             {
                 if (eargs.Message != null)
                 {
@@ -301,7 +302,7 @@ namespace Chetch.ChetchXMPP
             };
 
             //Now connect
-            Task connectTask = cnn.ConnectAsync();
+            Task connectTask = Connection.ConnectAsync();
             try
             {
                 logger.LogInformation(EVENT_ID_START2CONNECT, "Awaiting connect process to complete...");
@@ -317,10 +318,13 @@ namespace Chetch.ChetchXMPP
 
         public override Task StopAsync(CancellationToken cancellationToken)
         {
-            String eventDescription = String.Format("{0} is stopping", cnn.Username);
-            Message notification = createNotificationOfEvent(ServiceEvent.Stopping, eventDescription);
-            Broadcast(notification);
-            cnn.DisconnectAsync();
+            String eventDescription = String.Format("{0} is stopping", ServiceName);
+            if (Connection != null)
+            {
+                Message notification = createNotificationOfEvent(ServiceEvent.Stopping, eventDescription);
+                Broadcast(notification);
+                Connection.DisconnectAsync();
+            }
 
             return base.StopAsync(cancellationToken);
         }
@@ -335,12 +339,12 @@ namespace Chetch.ChetchXMPP
             {
                 case SessionState.Binded:
                     serviceEvent = ServiceEvent.Connected;
-                    eventDescription = String.Format("{0} is connected", cnn.Username);
+                    eventDescription = String.Format("{0} is connected", Connection.Username);
                     break;
 
                 case SessionState.Disconnecting:
                     serviceEvent = ServiceEvent.Disconnecting;
-                    eventDescription = String.Format("{0} is disconnecting", cnn.Username);
+                    eventDescription = String.Format("{0} is disconnecting", Connection.Username);
                     break;
 
                 case SessionState.Disconnected:
@@ -412,11 +416,11 @@ namespace Chetch.ChetchXMPP
         #region Sending Messages
         virtual protected void Broadcast(Message message)
         {
-            cnn.Broadcast(message);
+            Connection.Broadcast(message);
         }
 
         virtual protected void SendMessage(Message message){
-            cnn.SendMessageAsync(message);
+            Connection.SendMessageAsync(message);
         }
         #endregion
 
@@ -433,7 +437,7 @@ namespace Chetch.ChetchXMPP
                     response.AddValue("StatusMessage", StatusMessage);
                     response.AddValue("ServerTime", ServerTime);
                     response.AddValue("ServerTimeOffset", ServerTimeOffset);
-                    cnn.AddContact(message.Sender);
+                    Connection.AddContact(message.Sender);
                     logger.LogWarning(EVENT_ID_SUBSCRIPTION, "{0} has subscribed", message.Sender);
                     return true;
 
