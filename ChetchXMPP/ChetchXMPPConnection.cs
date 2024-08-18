@@ -33,6 +33,11 @@ namespace Chetch.ChetchXMPP
 
         public const int ERROR_CODE_SERVICE_UNAVAILABLE = 503;
 
+        public const String MESSAGE_FIELD_ERROR_CODE = "ErrorCode";
+        public const String MESSAGE_FIELD_ERROR_TYPE = "ErrorType";
+        public const String MESSAGE_FIELD_ERROR_MESSAGE = "ErrorMessage";
+
+
         private XmppClient xmppClient;
         public SessionState CurrentState { get; internal set; } = SessionState.Disconnected;
         public String Username => xmppClient?.Jid.Bare.ToString();
@@ -71,9 +76,9 @@ namespace Chetch.ChetchXMPP
                         Jid to = new Jid(message.To);
                         errorMessage.Target = to.Bare.ToString();
                         errorMessage.Sender = from.Bare.ToString();
-                        errorMessage.AddValue("ErrorCode", errorCode);
-                        errorMessage.AddValue("ErrorType", message.Error.GetAttribute("type"));
-                        errorMessage.AddValue("ErrorMessage", message.Error.FirstElement.Name.LocalName);
+                        errorMessage.AddValue(MESSAGE_FIELD_ERROR_CODE, errorCode);
+                        errorMessage.AddValue(MESSAGE_FIELD_ERROR_TYPE, message.Error.GetAttribute("type"));
+                        errorMessage.AddValue(MESSAGE_FIELD_ERROR_MESSAGE, message.Error.FirstElement.Name.LocalName);
                         errorMessage.AddValue("OriginalMessage", chetchMessage);
                         eargs.Message = errorMessage;
                     }
