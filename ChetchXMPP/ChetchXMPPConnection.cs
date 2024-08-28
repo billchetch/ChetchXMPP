@@ -31,7 +31,7 @@ namespace Chetch.ChetchXMPP
         
         const String CHETCH_MESSAGE_SUBJECT = "chetch.message";
 
-        public const int ERROR_CODE_SERVICE_UNAVAILABLE = 503;
+        public const int ERROR_CODE_SERVICE_UNAVAILABLE = 503; //when a user is messaged but isn't online
 
         public const String MESSAGE_FIELD_ERROR_CODE = "ErrorCode";
         public const String MESSAGE_FIELD_ERROR_TYPE = "ErrorType";
